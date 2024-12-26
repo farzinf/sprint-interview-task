@@ -4,9 +4,10 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Poll, PollOption, Vote } from './entities';
 import { CreatePollDto } from './dto';
+import { PollGateway } from './poll.gateway';
 
 @Injectable()
 export class PollService {
@@ -17,6 +18,8 @@ export class PollService {
     private readonly optionRepository: Repository<PollOption>,
     @InjectRepository(Vote)
     private readonly voteRepository: Repository<Vote>,
+    private readonly pollGateway: PollGateway,
+    private readonly dataSource: DataSource,
   ) {}
 
   /**
