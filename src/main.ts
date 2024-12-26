@@ -4,6 +4,7 @@ import { swaggerSetup } from './swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe } from '@nestjs/common';
 import { ValidationError } from './modules/common/errors';
+import { IoAdapter } from '@nestjs/platform-socket.io';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -15,6 +16,8 @@ async function bootstrap() {
       exceptionFactory: (errors) => new ValidationError(errors),
     }),
   );
+
+  app.useWebSocketAdapter(new IoAdapter(app));
 
   swaggerSetup(app);
   await app.listen(3000);
