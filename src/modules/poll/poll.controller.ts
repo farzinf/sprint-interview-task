@@ -66,8 +66,8 @@ export class PollController {
   })
   @Delete(':pollId')
   @HttpCode(204)
-  async deletePoll(@Param('pollId') pollId: string) {
-    const deleted = await this.pollService.deletePoll(+pollId);
+  async deletePoll(@Param('pollId', new ParseIntPipe()) pollId: number) {
+    const deleted = await this.pollService.deletePoll(pollId);
     if (!deleted) {
       throw new NotFoundException(`Poll with ID ${pollId} not found`);
     }
