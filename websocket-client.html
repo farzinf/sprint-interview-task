@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Poll Results</title>
+    <style>
+      .title {
+        font-size: 36px;
+        font-weight: bold;
+        margin-bottom: 20px;
+        text-align: center;
+      }
+
+      .poll-container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f5f5f5;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+
+      .poll-question {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 20px;
+      }
+
+      .poll-option {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        border-bottom: 1px solid #e0e0e0;
+      }
+
+      .poll-option-text {
+        font-size: 18px;
+      }
+
+      .poll-option-count {
+        font-size: 16px;
+        font-weight: bold;
+        padding: 5px 10px;
+        background-color: #e0e0e0;
+        border-radius: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1 class="title">Pull Result</h1>
+    <div class="poll-container">
+      <div class="poll-question" id="poll-question"></div>
+      <div id="poll-options"></div>
+    </div>
+    <input type="text" id="messageInput" placeholder="Type a message" />
+    <button onclick="sendMessage()">Send</button>
+    <div id="messages"></div>
+
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script>
+      const socket = io('http://localhost:3000');
+
+      socket.on('voteUpdate', (data) => {
+        const { poll, options } = data;
+        updatePollUI(poll, options);
+      });
+      function updatePollUI(poll, options) {
+        document.getElementById('poll-question').textContent = poll.question;
+
+        const pollOptionsDiv = document.getElementById('poll-options');
+        pollOptionsDiv.innerHTML = '';
+
+        options.forEach((option) => {
+          const optionDiv = document.createElement('div');
+          optionDiv.classList.add('poll-option');
+
+          const optionTextDiv = document.createElement('div');
+          optionTextDiv.classList.add('poll-option-text');
+          optionTextDiv.textContent = option.text;
+
+          const optionCountDiv = document.createElement('div');
+          optionCountDiv.classList.add('poll-option-count');
+          optionCountDiv.textContent = option.count;
+
+          optionDiv.appendChild(optionTextDiv);
+          optionDiv.appendChild(optionCountDiv);
+          pollOptionsDiv.appendChild(optionDiv);
+        });
+      }
+
+      function sendMessage() {
+        const input = document.getElementById('messageInput');
+        const message = input.value;
+        socket.emit('message', message);
+        input.value = '';
+      }
+    </script>
+  </body>
+</html>
