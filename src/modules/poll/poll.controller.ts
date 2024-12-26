@@ -71,6 +71,7 @@ export class PollController {
     if (!deleted) {
       throw new NotFoundException(`Poll with ID ${pollId} not found`);
     }
+    return deleted;
   }
 
   /**
