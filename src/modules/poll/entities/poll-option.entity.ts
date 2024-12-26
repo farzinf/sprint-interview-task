@@ -25,7 +25,14 @@ export class PollOption {
     example: 'JavaScript',
   })
   @Column()
-  text: string; // Option text, e.g., "Red", "Blue"
+  text: string;
+
+  @ApiProperty({
+    description: 'counter of this option',
+    example: '0',
+  })
+  @Column({ default: 0 })
+  count: number;
 
   @ManyToOne(() => Poll, (poll) => poll.options, { onDelete: 'CASCADE' })
   poll: Poll;
