@@ -101,7 +101,7 @@ export class PollService {
     await this.voteRepository.save(vote);
   }
 
-  async getPollResults(pollId: number): Promise<any> {
+  async getPollResults(pollId: number): Promise<PollOption[]> {
     const options = await this.optionRepository.find({
       where: { poll: { id: pollId } },
       relations: ['votes'],
@@ -109,9 +109,6 @@ export class PollService {
     if (!options || options.length === 0)
       throw new NotFoundException('Poll not found');
 
-    return options.map((option) => ({
-      option: option.text,
-      votes: option.votes.length,
-    }));
+    return options;
   }
 }
