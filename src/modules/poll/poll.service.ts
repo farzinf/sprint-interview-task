@@ -66,39 +66,83 @@ export class PollService {
     return deleteResult.affected > 0;
   }
 
+  /**
+   * Cast a vote for a specific option by a user.
+   * @param pollId: ID of the poll.
+   * @param userId ID of the user voting.
+   * @param optionId ID of the vote option.
+   */
   async castVote(
     pollId: number,
     optionId: number,
     userId: number,
   ): Promise<void> {
-    // Fetch the poll option and ensure it exists
-    const option = await this.optionRepository.findOne({
-      where: {
-        id: optionId,
-        poll: {
-          id: pollId,
+    const [option, existingVote] = await Promise.all([
+      this.optionRepository.findOne({
+        where: {
+          id: optionId,
+          poll: {
+            id: pollId,
+          },
         },
-      },
-      relations: ['poll'],
-    });
-    if (!option) throw new NotFoundException('Poll option not found');
-
-    // Check if the user has already voted in this poll
-    const existingVote = await this.voteRepository.findOne({
-      where: {
-        userId,
-        option: { poll: option.poll }, // Ensure the user hasn't voted in this poll
-      },
-      relations: ['option', 'option.poll'],
-    });
+        relations: ['poll'],
+      }),
+      this.voteRepository.findOne({
+        where: {
+          userId,
+          option: { poll: { id: pollId } },
+        },
+        relations: ['option', 'option.poll'],
+      }),
+    ]);
+    if (!option) throw new NotFoundException('Poll or PollOption not found');
 
     if (existingVote) {
       throw new ConflictException('User has already voted in this poll');
     }
 
-    // Create and save the new vote
-    const vote = this.voteRepository.create({ userId, option });
-    await this.voteRepository.save(vote);
+    await this.dataSource.transaction(async (manager) => {
+      /* Sqlite does not support the locking
+      // Lock the pollOption row for updating
+      const pollOption = await manager.findOne(PollOption, {
+        where: { id: optionId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      console.log({ pollOption });
+
+      if (!pollOption) {
+        throw new Error('Vote option not found.');
+      }
+
+      // Increment the vote counter
+      pollOption.count += 1;
+      await manager.save(PollOption, pollOption);
+
+      // Record the user's vote
+      const userVote = manager.create(Vote, { userId, optionId });
+      await manager.save(Vote, userVote);
+      */
+
+      // Atomic increment using a raw query
+      await manager
+        .createQueryBuilder()
+        .update(PollOption)
+        .set({ count: () => 'count + 1' })
+        .where('id = :id', { id: optionId })
+        .execute();
+
+      // Record the user's vote
+      const newVote = manager.create(Vote, { userId, option });
+      await manager.save(Vote, newVote);
+    });
+    const options = await this.optionRepository.find({
+      where: { poll: { id: pollId } },
+      select: {
+        count: true,
+        text: true,
+      },
+    });
+    this.pollGateway.sendVoteUpdate(option.poll, options);
   }
 
   async getPollResults(pollId: number): Promise<PollOption[]> {
